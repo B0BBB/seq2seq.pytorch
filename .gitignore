@@ -100,5 +100,22 @@ ENV/
 # mkdocs documentation
 /site
 
+# JetBrains IDEs - PyCharm
+/.idea
+
 # mypy
 .mypy_cache/
+
+# Locally stored "Eclipse launch configurations"
+*.launch
+
+# PyDev specific (Python IDE for Eclipse)
+*.pydevproject
+
+# sbteclipse plugin
+.target
+
+# Scala IDE specific (Scala & Java development for Eclipse)
+.cache-main
+.scala_dependencies
+.worksheet

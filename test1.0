@@ -1,0 +1,9 @@
+saving to ./results/en_he_dual
+Traceback (most recent call last):
+  File "main.py", line 207, in <module>
+    main(args)
+  File "main.py", line 134, in main
+    model = getattr(models, args.model)(**model_config)
+  File "/home/olegzendel@st.technion.ac.il/project/seq2seq.pytorch/seq2seq/models/recurrent.py", line 227, in __init__
+    self.decoder = RecurrentAttentionDecoder(**decoder)
+TypeError: __init__() got an unexpected keyword argument 'context_transform'

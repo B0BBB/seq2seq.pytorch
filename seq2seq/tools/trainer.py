@@ -70,8 +70,8 @@ class Seq2SeqTrainer(object):
                  cuda=True):
         super(Seq2SeqTrainer, self).__init__()
         self.model = model
-        self.criterion = criterion or CrossEntropyLoss(
-            size_average=False, ignore_index=PAD, smooth_eps=label_smoothing)
+        self.criterion = criterion or nn.CrossEntropyLoss(
+            size_average=False, ignore_index=PAD)
 
         self.optimizer = OptimRegime(self.model.parameters(), regime=regime)
         self.grad_clip = grad_clip

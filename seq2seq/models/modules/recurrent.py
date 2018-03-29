@@ -237,6 +237,27 @@ class ZoneOutCell(nn.Module):
         return next_hidden
 
 
+# class DropoutHiddenCell(nn.Module):
+#
+#     def __init__(self, cell, dropout_hidden=0, dropout_all_states=True):
+#         super(DropoutHiddenCell, self).__init__()
+#         self.cell = cell
+#         self.hidden_size = cell.hidden_size
+#         self.dropout_all_states = dropout_all_states
+#         self.dropout_hidden = nn.Dropout(dropout_hidden)
+#
+#     def forward(self, inputs, hidden):
+#         next_hidden = self.cell(inputs, hidden)
+#         if isinstance(h, tuple):
+#             if self.dropout_all_states:
+#                 next_hidden = tuple([self.dropout_hidden(h_i) for h_i in h])
+#             else:
+#
+#         else:
+#             next_hidden = self.dropout_hidden(h)
+#         return next_hidden
+
+
 def wrap_time_cell(cell_func, batch_first=False, lstm=True, with_attention=False, reverse=False):
     def f(*kargs, **kwargs):
         return TimeRecurrentCell(cell_func(*kargs, **kwargs), batch_first, lstm, with_attention, reverse)
@@ -259,18 +280,23 @@ class TimeRecurrentCell(nn.Module):
         hidden_size = self.cell.hidden_size
         batch_dim = 0 if self.batch_first else 1
         time_dim = 1 if self.batch_first else 0
+        batch_size = inputs.size(batch_dim)
+
         if hidden is None:
-            batch_size = inputs.size(batch_dim)
             num_layers = getattr(self.cell, 'num_layers', 1)
             zero = inputs.data.new(1).zero_()
             h0 = zero.view(1, 1, 1).expand(num_layers, batch_size, hidden_size)
             hidden = Variable(h0, requires_grad=False)
             if self.lstm:
                 hidden = (hidden, Variable(h0, requires_grad=False))
-            if self.with_attention:
-                attn_size = self.cell.attention.output_size
-                a0 = zero.view(1, 1).expand(batch_size, attn_size)
-                hidden = (hidden, Variable(a0, requires_grad=False))
+        if self.with_attention and \
+            (not isinstance(hidden, tuple)
+             or self.lstm and not isinstance(hidden[0], tuple)):
+            # check if additional initial attention state is needed
+            zero = inputs.data.new(1).zero_()
+            attn_size = self.cell.attention.output_size
+            a0 = zero.view(1, 1).expand(batch_size, attn_size)
+            hidden = (hidden, Variable(a0, requires_grad=False))
 
         outputs = []
         attentions = []
@@ -315,7 +341,6 @@ class RecurrentAttention(nn.Module):
             context_key_size, context_value_size = context_size
         else:
             context_key_size = context_value_size = context_size
-
         attention = attention or {}
         attention['key_size'] = context_key_size
         attention['value_size'] = context_value_size

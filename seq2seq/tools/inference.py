@@ -8,6 +8,8 @@ from torch.nn.functional import adaptive_avg_pool2d
 from seq2seq import models
 from seq2seq.tools import batch_sequences
 from seq2seq.models.modules.weight_norm import WeightNorm
+from torch.nn.utils.rnn import PackedSequence
+
 
 def average_models(checkpoint_filenames):
     averaged = {}
@@ -24,11 +26,11 @@ def average_models(checkpoint_filenames):
     checkpoint['state_dict'] = averaged
     return checkpoint
 
+
 def remove_wn_checkpoint(checkpoint):
     model = getattr(models, checkpoint['config'].model)(
         **checkpoint['config'].model_config)
     model.load_state_dict(checkpoint['state_dict'])
-
 
     def change_field(dict_obj, field, new_val):
         for k, v in dict_obj.items():
@@ -56,6 +58,7 @@ def remove_wn_checkpoint(checkpoint):
     change_field(checkpoint['config'].model_config, 'weight_norm', False)
     return checkpoint
 
+
 class Translator(object):
 
     def __init__(self, checkpoint=None,
@@ -70,6 +73,7 @@ class Translator(object):
             "supply either a checkpoint dictionary or model and tokenizers"
         if checkpoint is not None:
             config = checkpoint['config']
+            self.pack_encoder_inputs = config.pack_encoder_inputs
             self.model = getattr(models, config.model)(**config.model_config)
             self.model.load_state_dict(checkpoint['state_dict'])
             self.src_tok, self.target_tok = checkpoint['tokenizers'].values()
@@ -77,6 +81,7 @@ class Translator(object):
             self.model = model
             self.src_tok = src_tok
             self.target_tok = target_tok
+            self.pack_encoder_inputs = False
         self.insert_target_start = [BOS]
         self.insert_src_start = [BOS]
         self.insert_src_end = [EOS]
@@ -133,17 +138,31 @@ class Translator(object):
                                                insert_start=self.insert_target_start)
                 bos = [list(bos)] * batch
 
-        src = Variable(batch_sequences(src_tok,
-                                       batch_first=self.model.encoder.batch_first)[0],
-                       volatile=True)
-        if self.cuda:
-            src = src.cuda()
+        order = range(batch)
+        if self.pack_encoder_inputs:
+            # sort by the first set
+            sorted_idx, src_tok = zip(*sorted(
+                enumerate(src_tok), key=lambda x: x[1].numel(), reverse=True))
+            order = [sorted_idx.index(i) for i in order]
 
+        src = batch_sequences(src_tok,
+                              sort=False,
+                              pack=self.pack_encoder_inputs,
+                              batch_first=self.model.encoder.batch_first)[0]
+
+        # Allow packed source sequences - for cudnn rnns
+        if isinstance(src, PackedSequence):
+            src_var = Variable(src[0].cuda() if self.cuda else src[0],
+                               volatile=True)
+            src = PackedSequence(src_var, src[1])
+        elif self.cuda:
+            src = Variable(src.cuda() if self.cuda else src, volatile=True)
         context = self.model.encode(src)
+
         if hasattr(self.model, 'bridge'):
             state = self.model.bridge(context)
-        state_list = [state[i] for i in range(batch)]
 
+        state_list = [state[idx] for idx in order]
         seqs = self.generator.beam_search(bos, state_list)
         # remove forced  tokens
         preds = [s.sentence[len(self.insert_target_start):] for s in seqs]
@@ -169,21 +188,21 @@ class Translator(object):
 
 class CaptionGenerator(Translator):
 
-    def __init__(self, model, img_transform, target_tok,
-                 beam_size=5,
+    def __init__(self, checkpoint=None,
+                 model=None, img_transform=None,
+                 target_tok=None, beam_size=5,
                  length_normalization_factor=0,
                  max_sequence_length=50,
                  get_attention=False,
-                 cuda=False):
-        self.img_transform = img_transform
-        super(CaptionGenerator, self).__init__(model,
-                                               None,
-                                               target_tok,
-                                               beam_size,
-                                               length_normalization_factor,
-                                               max_sequence_length,
-                                               get_attention,
-                                               cuda)
+                 cuda=None):
+        super(CaptionGenerator, self).__init__(checkpoint=checkpoint,
+                                               model=model, target_tok=target_tok,
+                                               beam_size=beam_size,
+                                               length_normalization_factor=length_normalization_factor,
+                                               max_sequence_length=max_sequence_length,
+                                               get_attention=get_attention, cuda=cuda)
+        self.img_transform = img_transform or self.src_tok(
+            allow_var_size=False, train=False)
 
     def set_src_language(self, language):
         pass
@@ -203,10 +222,8 @@ class CaptionGenerator(Translator):
             bos = list(self.target_tok.tokenize(target_priming,
                                                 insert_start=self.insert_target_start))
         state = self.model.encode(src)
-        _, c, h, w = list(state.outputs.size())
         if hasattr(self.model, 'bridge'):
             state = self.model.bridge(state)
-
         [seq] = self.generator.beam_search([bos], [state])
         # remove forced  tokens
         output = self.target_tok.detokenize(
@@ -214,6 +231,7 @@ class CaptionGenerator(Translator):
         if len(target_priming) > 0:
             output = [' '.join([target_priming, o]) for o in output]
         if seq.attention is not None:
+            _, c, h, w = list(state.outputs.size())
             attentions = torch.stack([a.view(h, w) for a in seq.attention], 0)
             preds = seq.sentence[len(self.insert_target_start):]
             preds = [self.target_tok.idx2word(idx) for idx in preds]

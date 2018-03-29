@@ -98,7 +98,7 @@ class AttentionLayer(nn.Module):
             scores.masked_fill_(mask, -1e12)
 
         # Normalize the scores
-        scores_normalized = F.softmax(scores, dim=2)
+        scores_normalized = F.softmax(scores)
 
         # Calculate the weighted average of the attention inputs
         # according to the scores

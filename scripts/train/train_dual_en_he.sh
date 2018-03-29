@@ -10,8 +10,8 @@ python main.py \
   --model RecurrentAttentionSeq2Seq \
   --model_config "{'hidden_size': 512, 'dropout': 0.2, \
                    'tie_embedding': True, 'transfer_hidden': False, \
-                   'encoder': {'num_layers': 3, 'bidirectional': True, 'num_bidirectional': 1}, \
-                   'decoder': {'num_layers': 4,  'num_pre_attention_layers': 1, 'context_transform': 512, \
+                   'encoder': {'num_layers': 3, 'bidirectional': True, 'num_bidirectional': 1, 'context_transform': 512}, \
+                   'decoder': {'num_layers': 4,  'num_pre_attention_layers': 1, \
                                'attention': {'mode': 'bahdanau', 'normalize': True}}}" \
   --data_config "{'languages': ['he','en'], 'mark_language': True, 'tokenization':'bpe',\
                   'num_symbols':32000, 'shared_vocab':True}" \

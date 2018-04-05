@@ -119,16 +119,22 @@ def main(args):
     train_data = dataset(args.dataset_dir, split='train', **args.data_config)
     val_data = dataset(args.dataset_dir, split='dev', **args.data_config)
     src_tok, target_tok = train_data.tokenizers.values()
-
+    print('-------- This is the train_data.tokenizers.values(): {}'.format(train_data.tokenizers.values()))
+    print('-------- This is the train_data.tokenizers.items(): {}'.format(train_data.tokenizers.items()))
+    print('--------This is the target_tok : {}'.format(target_tok))
     regime = literal_eval(args.optimization_config)
     model_config = literal_eval(args.model_config)
 
     model_config.setdefault('encoder', {})
     model_config.setdefault('decoder', {})
+    #if hasattr(src_tok, 'vocab_size'):
+    #    model_config['encoder']['vocab_size'] = src_tok.vocab_size
+    #    model_config['vocab_size'] = model_config['encoder']['vocab_size']
+    #    print('entered firtst if')
     if hasattr(src_tok, 'vocab_size'):
-        model_config['encoder']['vocab_size'] = src_tok.vocab_size
-    model_config['decoder']['vocab_size'] = target_tok.vocab_size
-    model_config['vocab_size'] = model_config['decoder']['vocab_size']
+        model_config['decoder']['vocab_size'] = src_tok.vocab_size
+        model_config['vocab_size'] = model_config['decoder']['vocab_size']
+        print('entered second if')
     args.model_config = model_config
 
     model = getattr(models, args.model)(**model_config)

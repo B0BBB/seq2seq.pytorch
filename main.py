@@ -119,9 +119,6 @@ def main(args):
     train_data = dataset(args.dataset_dir, split='train', **args.data_config)
     val_data = dataset(args.dataset_dir, split='dev', **args.data_config)
     src_tok, target_tok = train_data.tokenizers.values()
-    print('-------- This is the train_data.tokenizers.values(): {}'.format(train_data.tokenizers.values()))
-    print('-------- This is the train_data.tokenizers.items(): {}'.format(train_data.tokenizers.items()))
-    print('--------This is the target_tok : {}'.format(target_tok))
     regime = literal_eval(args.optimization_config)
     model_config = literal_eval(args.model_config)
 

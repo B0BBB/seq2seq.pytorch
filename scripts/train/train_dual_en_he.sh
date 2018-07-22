@@ -3,7 +3,7 @@ DATASET_DIR=${2:-"./data/OpenSubtitles2016"}
 OUTPUT_DIR=${3:-"./results"}
 
 python main.py \
-  --save en_he_dual \
+  --save en_he_dual_new \
   --dataset ${DATASET} \
   --dataset_dir ${DATASET_DIR} \
   --results_dir ${OUTPUT_DIR} \

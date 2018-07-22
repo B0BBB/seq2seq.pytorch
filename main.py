@@ -124,14 +124,17 @@ def main(args):
 
     model_config.setdefault('encoder', {})
     model_config.setdefault('decoder', {})
-    #if hasattr(src_tok, 'vocab_size'):
-    #    model_config['encoder']['vocab_size'] = src_tok.vocab_size
+    if hasattr(src_tok, 'vocab_size'):
+        model_config['encoder']['vocab_size'] = src_tok.vocab_size
     #    model_config['vocab_size'] = model_config['encoder']['vocab_size']
     #    print('entered firtst if')
-    if hasattr(src_tok, 'vocab_size'):
-        model_config['decoder']['vocab_size'] = src_tok.vocab_size
-        model_config['vocab_size'] = model_config['decoder']['vocab_size']
-        print('entered second if')
+    #if hasattr(src_tok, 'vocab_size'):
+    #    model_config['decoder']['vocab_size'] = src_tok.vocab_size
+    #    model_config['vocab_size'] = model_config['decoder']['vocab_size']
+    #    print('entered second if')
+    model_config['decoder']['vocab_size'] = target_tok.vocab_size
+    model_config['vocab_size'] = model_config['decoder']['vocab_size']
+
     args.model_config = model_config
 
     model = getattr(models, args.model)(**model_config)

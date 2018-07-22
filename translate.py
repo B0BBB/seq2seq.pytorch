@@ -58,6 +58,9 @@ if __name__ == '__main__':
                                    max_sequence_length=args.max_sequence_length,
                                    length_normalization_factor=args.length_normalization,
                                    cuda=cuda)
+    translation_model.set_src_language('en')
+    translation_model.set_target_language('he')
+
 
     output_file = codecs.open(args.output, 'w', encoding='UTF-8')
 

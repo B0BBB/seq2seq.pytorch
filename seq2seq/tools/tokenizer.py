@@ -59,7 +59,7 @@ class Tokenizer(object):
 
         return tok_func(line)
 
-    def get_vocab(self,  item_list, from_filenames=True, limit=None):
+    def get_vocab(self, item_list, from_filenames=True, limit=None):
         vocab = OrderedCounter()
         if from_filenames:
             filenames = item_list
@@ -88,7 +88,7 @@ class Tokenizer(object):
             for line in f:
                 try:
                     word, count = line.strip().split()
-                except: #no count
+                except:  # no count
                     word, count = line.strip(), 0
                 vocab[word] = int(count)
         self.vocab = vocab.most_common(limit)
@@ -160,8 +160,7 @@ class BPETokenizer(Tokenizer):
 
     def detokenize(self, inputs, delimiter=' '):
         detok_string = super(BPETokenizer, self).detokenize(inputs, delimiter)
-        detok_string = detok_string.decode(
-            'utf-8').replace(self.seperator + ' ', '').replace(self.seperator, '')
+        detok_string = detok_string.replace(self.seperator + ' ', '').replace(self.seperator, '')
         # detok_string = detok_string.encode('utf-8').strip()
         return detok_string
 

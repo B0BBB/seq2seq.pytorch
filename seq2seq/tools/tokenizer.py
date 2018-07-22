@@ -59,7 +59,7 @@ class Tokenizer(object):
 
         return tok_func(line)
 
-    def get_vocab(self,  item_list, from_filenames=True, limit=None):
+    def get_vocab(self, item_list, from_filenames=True, limit=None):
         vocab = OrderedCounter()
         if from_filenames:
             filenames = item_list
@@ -88,7 +88,7 @@ class Tokenizer(object):
             for line in f:
                 try:
                     word, count = line.strip().split()
-                except: #no count
+                except:  # no count
                     word, count = line.strip(), 0
                 vocab[word] = int(count)
         self.vocab = vocab.most_common(limit)

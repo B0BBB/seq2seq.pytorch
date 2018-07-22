@@ -196,7 +196,7 @@ class CaptionGenerator(Translator):
                  get_attention=False,
                  cuda=None):
         super(CaptionGenerator, self).__init__(checkpoint=checkpoint,
-                                               model=model, target_tok=target_tok,
+                                               model=model, target_tok=target_tok, src_tok=img_transform,
                                                beam_size=beam_size,
                                                length_normalization_factor=length_normalization_factor,
                                                max_sequence_length=max_sequence_length,
@@ -222,6 +222,7 @@ class CaptionGenerator(Translator):
             bos = list(self.target_tok.tokenize(target_priming,
                                                 insert_start=self.insert_target_start))
         state = self.model.encode(src)
+        _, c, h, w = list(state.outputs.size())
         if hasattr(self.model, 'bridge'):
             state = self.model.bridge(state)
         [seq] = self.generator.beam_search([bos], [state])
@@ -231,7 +232,8 @@ class CaptionGenerator(Translator):
         if len(target_priming) > 0:
             output = [' '.join([target_priming, o]) for o in output]
         if seq.attention is not None:
-            _, c, h, w = list(state.outputs.size())
+            # print(output)
+            # _, c, h, w = list(state.context.outputs.size())
             attentions = torch.stack([a.view(h, w) for a in seq.attention], 0)
             preds = seq.sentence[len(self.insert_target_start):]
             preds = [self.target_tok.idx2word(idx) for idx in preds]
